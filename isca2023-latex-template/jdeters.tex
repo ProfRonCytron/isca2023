@@ -1,0 +1,42 @@
+%A set of custom commands that are used for my personal latex style
+%Created: Feb 2020
+%Updated: July 2020
+\usepackage{listings}
+
+\newcommand{\defn}[1]{\textbf{#1}} %definitions are bold
+\newcommand{\jnote}[1]{\textcolor{blue}{Justin: #1\\}} %a note from Justin
+\newcommand{\rnote}[1]{\textcolor{orange}{Ron: #1\\}} %a note from Ron
+\newcommand{\pnote}[1]{\textcolor{purple}{Peyton: #1\\}} %a note from Peyton
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1\\}} %a todo note
+
+\definecolor{tangerine}{RGB}{245,166,35} %comments, primary color
+\definecolor{blueSeaFoam}{RGB}{80,227,194}
+\definecolor{liteGreen}{RGB}{184,233,134 }
+\definecolor{royalBlue}{RGB}{74,144,226} %keywords
+\definecolor{amaranth}{rgb}{0.9, 0.17, 0.31} %special keywords
+\definecolor{lavender}{rgb}{0.71, 0.49, 0.86}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{white},   
+    commentstyle=\color{black},
+    keywordstyle=\color{royalBlue},
+    identifierstyle=\color{black},
+    numberstyle=\tiny\color{gray},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=lines,
+    %just for Chisel
+    emph={Module, IO, Input, Output, UInt, Bool, Wire, Vec, before, after, extend, in, register, insert, apply, Pointcutter, AfterToken, AfterState, Some, when, :=, &&},
+    emphstyle=\color{amaranth}
+}
+
+\lstset{style=mystyle}

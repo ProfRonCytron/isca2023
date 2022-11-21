@@ -1,0 +1,37 @@
+\begin{lstlisting}[language = Scala]
+class Cache(val c: CacheConfig, val nasti: NastiBundleParameters, val xlen: Int) extends Module {
+  //outward facing IO
+  val cpu = IO(new CacheIO(xlen, xlen))
+  val mainMem = IO(new NastiBundle(nasti))
+
+  // local parameters
+  protected val p = new CacheParams(c.nSets, c.blockBytes, xlen, nasti)
+
+  //build the NFA for the cache
+  protected lazy val cacheNFA = Weaver[NFA](List(), ReadFSM(), (before: NFA, after: NFA) => before.isEqual(after))
+  protected lazy val fsmHandle = ChiselFSMBuilder(cacheNFA)
+
+  //this section is for things needed by the frontend and the backend
+  //split the address up into the parts we need
+  protected val nextAddress = Wire(chiselTypeOf(cpu.req.bits.addr))
+  protected val address = Reg(chiselTypeOf(nextAddress))
+  ...
+
+  //create a buffer for reads from main memory, also store the tag
+  protected val buffer = Reg(Vec(p.dataBeats, UInt(nasti.dataBits.W)))
+  //we will always have at least this
+  val valids = RegInit(0.U(p.nSets.W))
+
+  //set up phases used in every cache
+  protected val front = new Frontend(fsmHandle, p, cpu)
+  protected val back = new Backend(fsmHandle, p, mainMem, address)
+
+  //hit can be several different things depending on the feature set
+  protected val hit = Wire(Bool())
+  hit := false.B
+  ...
+
+  front.read(hit)
+  ...
+}
+\end{lstlisting}
