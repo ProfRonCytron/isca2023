@@ -26,7 +26,7 @@
 \pagenumbering{arabic}
 
 %%%%%%%%%%%---SETME-----%%%%%%%%%%%%%
-\title{Feature-Oriented Caches through Feature-Oriented Finite State Machines}
+\title{Feature-Oriented Caches Designs}
 \author{\normalsize{ISCA 2023 Submission
     \textbf{\#\iscasubmissionnumber} -- Confidential Draft -- Do NOT Distribute!!}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,9 +74,9 @@ While these goals are certainly attractive, it is nonetheless a daunting task to
 \begin{itemize}
    \item \Riscvmini{}~\cite{RvMini} is a 3-stage pipelined implementation of 32-bit \Riscv{} processor. It lacks many features that might be desirable for performance, but it is a relatively simple and easily understood implementation.  It includes instruction and data caches, but it omits floating-point support.  It is well documented and highly suitable for use in courses.
    \item \Rocketchip{}~\cite{chisel:riscv} is a robust implementation of 64-bit \Riscv{} using a 5-stage pipeline.  Its microarchitecture offers many features that improve performance and support larger applications, such as an MMU and floating-point arithmetic.  The intended applications include systems-on-a-chip (SoC).
-   \item Boom~\cite{boom} is an out-of-order execution implementation of \Riscv{}. Although it shares some of the same libraries as \Rocketchip{}, it is a separate implementation.  Much of its implementation duplicates the core functionality of \Rocketchip{}, making it more difficult to maintain and evolve both of those implementations.
+   \item BOOM~\cite{boom} is an out-of-order execution implementation of \Riscv{}. Although it shares some of the same libraries as \Rocketchip{}, it is a separate implementation.  Much of its implementation duplicates the core functionality of \Rocketchip{}, making it more difficult to maintain and evolve both of those implementations.
 \end{itemize}
-From the \Riscvmini{} to boom, these implementations add features to create an increasingly sophisticated implementation of \Riscv{}.  Each is written using the hardware generator language Chisel~\cite{chisel:book}, which is in turn embedded in the programming language Scala~\cite{scala-overview-tech-report}.  The execution of a Chisel program generates a hardware description, and the desirable features of modern, high-level languages are available in Chisel.  Both of these advantages are relevant to our work.
+From the \Riscvmini{} to BOOM, these implementations add features to create an increasingly sophisticated implementation of \Riscv{}.  Each is written using the hardware generator language Chisel~\cite{chisel:book}, which is in turn embedded in the programming language Scala~\cite{scala-overview-tech-report}.  The execution of a Chisel program generates a hardware description, and the desirable features of modern, high-level languages are available in Chisel.  Both of these advantages are relevant to our work.
 
 The features available for a given \Riscv{} processor are present in the code base and characterization for that processor.   There are configuration tools such as Diplomacy~\cite{diplomacy} that help parameterize the \Rocketchip{} processor and appropriately connect components to form an SoC. However, these tools require extensive modification of the codebase, with large amounts of non-generative infrastructure still complicating the overall generator design.
 
@@ -116,24 +116,24 @@ We show in this paper that our approach allows cache features that we have writt
 
 \subsection{Chisel, Scala, FIRRTL}
 
-Most hardware designs, including caches, are specified using hardware \emph{characterization} languages such as Verilog~\cite{verilog} and VHDL~\cite{vhdl}.  While those languages offer some abstractions in the form of parameters and restrictive loops, they lack abstractions such as classes, traits, and types that allow cleaner and more robust specifications of software systems.  To a cache using a hardware characterization language, we would have to build a tool that allowed high-level specification of cache features, from which we could then generate a design of interest.
+Most hardware designs, including caches, are specified using hardware \emph{characterization} languages such as Verilog~\cite{verilog} or VHDL~\cite{vhdl}.  While those languages offer some abstraction in the form of parameters and restrictive loops, they lack high-level concepts such as classes, traits, and types that allow cleaner and more robust specifications of software systems.
 
-Hardware generation languages like Chisel, on the other hand, allow the designer to write a program whose execution generates a design.  Chisel, based on Scala, has abstractions such as types, classes, and traits that allow a richer specification of a cache.  For example, the interface from cache to memory can be captured by a trait that captures the address and data to be transferred.  Any implementation of that trait suffices to be the ``memory'' backing a cache.
+Hardware generation languages like Chisel, on the other hand, allow the designer to write a program whose execution generates a design.  Chisel, based on Scala, has abstractions such as types, classes, and traits that allow a richer specification of a cache.  For example, the interface from cache to memory can be captured by a trait that models the address and data to be transferred.  Any implementation of that trait suffices to be the ``memory'' backing a cache.
 
 Transformations of the hardware design, for example to weave in features of interest, can be accomplished at the Scala level (using Scala meta) or FIRRTL level (using tree operations on Chisel's intermediate form).
 
 \subsection{Aspect-Oriented Programming}
 
-Large software systems are subject to the ``tyranny of the dominant decomposition'' in that the objects and methods that form the nouns and verbs of the system are those that are most present in the design.  Such systems, however, often have cross-cutting concerns.  For example, a log of class and method activity can require action at each method's call and return.  Aspect-oriented programming (AOP)~\cite{Kicz97} allows the specification of \emph{join-points} to model method calls and returns, along with \emph{advice} that specifies what should be done at those points of execution.  A general specification of a set of join-points is called a \emph{pointcut}. AspectJ~\cite{AspectJ:01} is a robust implementation of an AOP using Java.
+Large software systems are subject to the ``tyranny of the dominant decomposition'' in that the objects and methods that form the nouns and verbs of the system are those that are most prominent in the design.  Such systems, however, often have cross-cutting concerns.  For example, the logging of class and method activity can require action at each method's call and return.  Aspect-oriented programming (AOP)~\cite{Kicz97} allows the specification of \emph{join-points} to model method calls and returns, along with \emph{advice} that specifies what should be done at those points of execution.  A general specification of a set of join-points is called a \emph{pointcut}. AspectJ~\cite{AspectJ:01} is a robust implementation of an AOP using Java.
 
 For our work, AOP provides the approach we need to modifying finite-state machines, such as the one controlling a cache, to incorporate features as desired.  
 Internally, the cache's operation is governed by a finite-state machine.  Features are woven into the design as modifications of the finite-state machine (a base specification along with other features of interest).
 
 Aspects and FSMs have been used to describe the evolution of software product lines, with the goal of determining whether aspect application would terminate, and, if so, whether the results are sensitive to the order of application~\cite{aspectsUML}.
 
-Closer to our work, aspects and FSMs have been previously combined to reason about the interactions of a system's features~\cite{6078174}.  We take a common approach to specifying how FSMs are modified, which we explain below, based on states, transitions, and labels (symbols) of an FSM.  Their work is concerned with showing incompatibility of features (for example, call-waiting, and three-way calling).  In other words, they model the actions of larger system using an FSM.  Our cache controller \emph{is} the FSM of interest, and we use aspects to build up its functionality.   Incompatible features in our world are resolved by the first to modify the FSM, because thereafter the hook is no longer available.
+Closer to our work, aspects and FSMs have been previously combined to reason about the interactions of a system's features~\cite{6078174}.  We take a common approach to specifying how FSMs are modified, which we explain below, based on states, transitions, and labels (symbols) of an FSM.  Their work is concerned with showing incompatibility of features (for example, call-waiting, and three-way calling).  In other words, they model the actions of larger system using an FSM.  Our cache controller \emph{is} the FSM of interest, and we use aspects to build its functionality.   Incompatible features in our world are resolved by the first to modify the FSM, because thereafter the hook used by the modifying aspect is no longer available.
 
-\subsection{FOP in software systems}
+\subsection{Feature-oriented Programming in Software Systems}
 Our approach to cache design is influenced by the success of this idea in the software world.  For example, a CORBA event channel~\cite{Defago:97} offers many features in a complete implementation, but a given application may need only a few of those features.  Using an aspect-oriented approach, features were incorporated as desired, yielding implementations whose footprint and delay are affected only by necessary features~\cite{Hunleth:02}.  That work shows that by omitting unnecessary features, implementations can be generated that take much less area (code) and that have significantly better performance (latency) than the full-featured, monolithic version.  That work used the aspect compiler AspectJ~\cite{AspectJ:01} and a code base for an event channel and its features written in Java~\cite{java:22}.
 
 
@@ -178,28 +178,28 @@ State pointcuts are analogous to a set of function bodies in a program. Just as 
 \subsubsection{Advice}
 Continuing the analogy, an FSM is essentially a set of function bodies (states) where function calls (transitions) occur at the end of each body. For our purposes, advice is inserted into the execution flow of an FSM to implement a given feature. The advice affects the actions performed before, during, or after a state, including modification of transitions to target new or other states.
 
-We consider the usual forms of around, before, and after advice (\emph{cf}. AspectJ~\cite{AspectJ:01}). Around advice takes the joinpoint and replaces it with something else. States replace states and transitions replace transitions. Before and after advice come in the form of token-state or state-token pairs in order to add a new path through the FSM. Figure~\ref{fig:adviceExamples} shows the effect of different types of advice on a simple FSM. Before advice (q3, e) on q1 takes all paths into q1 and directs them into q3, on e the machine transitions to q1. The reverse is true for after advice (e, q3) on q1. All paths leaving q1 now leave q3 and the transition from q1 to q3 takes place on e. Similarly, before advice (e, q3) on a places e going into q3 and a out of q3. The reverse is true for after advice (q3, e) on a.  In each of these cases, e can be the empty string $\lambda$ if the behavior of the FSM should change but not require additional input to do so.
+We consider the usual forms of \emph{around}, \emph{before}, and \emph{after} advice (\emph{cf}. AspectJ~\cite{AspectJ:01}). Around advice takes the joinpoint and replaces it with something else. States replace states and transitions replace transitions. Before and after advice come in the form of token-state or state-token pairs in order to add a new path through the FSM. Figure~\ref{fig:adviceExamples} shows the effect of different types of advice on a simple FSM. Before advice (q3, e) on q1 takes all paths into q1 and directs them into q3, on e the machine transitions to q1. The reverse is true for after advice (e, q3) on q1. All paths leaving q1 now leave q3 and the transition from q1 to q3 takes place on e. Similarly, before advice (e, q3) on a places e going into q3 and a out of q3. The reverse is true for after advice (q3, e) on a.  In each of these cases, e can be the empty string $\lambda$ if the behavior of the FSM should change but not require additional input to do so.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.45\textwidth]{isca2023-latex-template/figures/AdviceExamples.drawio.pdf}
-    \caption{Examples of before and after advice on a small toy FSM.}
+    \caption{Examples of before and after advice on a small FSM.}
     \label{fig:adviceExamples}
 \end{figure}
 
-\subsubsection{Context aware advice}  When advice is applied, there is information associated with the join-point that provides
- the immediate context around it. State advice is aware of the paths going into and out of the state it is affecting and token advice is aware of the states preceding and seceding the transitions each token is involved in. For example the before advice on state q1 in Figure~\ref{fig:adviceExamples} could have two different paths placed before q1 depending if it was affecting a or c. This allows for very dynamic advice creation for changing the control structures for hardware.
+\subsubsection{Context Aware Advice}  When advice is applied, there is information associated with the join-point that provides
+ the immediate context around it. State advice is aware of the paths going into and out of the state it is affecting and token advice is aware of the states preceding and seceding the transitions each token is involved in. For example, the before advice on state q1 in Figure~\ref{fig:adviceExamples} could have two different paths placed before q1 depending if it was affecting a or c. This allows for dynamic and context-aware advice creation for changing the control structures for hardware.
 
 \subsection{Software Library}\label{sec:foam}
-All the mechanics above have been built into a software library. Because we targeted Chisel for hardware generation, this library is also built in Scala. As is, it can be dropped into any Chisel hardware generator to construct and generate hardware FSMs. The software library contains a set of base classes, \texttt{FSM}, \texttt{state}, and \texttt{token} that can be arbitrarily extended by hardware designers to suit their applications. 
+We have incorporated all of the above mechanics into a software library. Because we targeted Chisel for hardware generation, this library is also built in Scala. As is, it can be dropped into any Chisel hardware generator to construct and generate hardware FSMs. The software library contains a set of base classes, \texttt{FSM}, \texttt{state}, and \texttt{token} that can be arbitrarily extended by hardware designers to suit their applications. 
 
 Furthermore, the library fully handles all feature application through our \texttt{Weaver} class (in AOP, code is ``woven'' into a codebase). Advice may introduce new join-points within the FSM, making it necessary to reapply the aspects that contain those join-points in their pointcuts. As is the case for other aspect compilers, our weaver continues to apply advice until the resulting FSM is the same as the previous iteration.  It is thus possible to write an aspect that applies to an FSM without end, but standard advice-authoring care will prevent that.
 
 \subsubsection{Writing Aspects for Finite-State Machines}
-We have modeled the programming interface off the well established aspect language for Java, AspectJ~\cite{AspectJ:01}. This provides a familiar interface for aspect practitioners, as well as connects our work with prior AOP languages. No new syntax is needed to implement our library; everything is in ordinary Scala/Chisel.
+We have modeled the programming interface using the well established aspect language for Java, AspectJ~\cite{AspectJ:01}. This provides a familiar interface for aspect practitioners, as well as connects our work with prior AOP languages. No new syntax is needed to implement our library; everything is specified using ordinary Scala/Chisel.
 
 \paragraph{Pointcuts}
-Figure~\ref{fig:pointcut} demonstrates the creation of a pointcut from our implementation. Here, the predicate is written using a Scala \texttt{match} statement. The \texttt{Pointcutter} will iterate over all the states in the FSM and add them to the pointcut if the predicate evaluates to true. A predicate can be written as any arbitrary Scala code as long as it follows the interface of consuming a state (or token) and returns true if it satisfies the properties defined in the predicate. The result of this example would create a pointcut of states where the type of the state is \texttt{WriteWaitState}.
+Figure~\ref{fig:pointcut} demonstrates the creation of a pointcut from our implementation. Here, the predicate is written using a Scala \texttt{match} statement. The \texttt{Pointcutter} will iterate over all the states in the FSM and add them to the pointcut if the predicate evaluates to true. A predicate can be written as any arbitrary Scala code as long as it follows the interface of consuming a state (or token) and returns true if it satisfies the properties defined in the predicate. The result of this example would create a pointcut of states where the type of the state is \texttt{WriteWaitState}. This the state in cache where it waits for acknowledgement from the backing store in the AXI protocol.
 
 \begin{figure*}[ht]
     \centering
@@ -217,7 +217,7 @@ val waitPointcut = Pointcutter[State, WriteWaitState](
 \end{figure*}
 
 \paragraph{Advice}
-Figure~\ref{fig:advice} shows the construction of advice using the \texttt{AfterState} class. Any arbitrary Scala code can be executed inside the advice body as long as it returns advice. \texttt{StateJoinpoint} provides reflexive access to the join-point as well as its context. In this advice, in the \texttt{match} statement, we test to see a transition already exists coming out of the state using the join-point context. If we do no do this, the advice would apply again. The result of this advice would be to insert a new \texttt{ack} edge between every \texttt{WriteWaitState} and the \texttt{Idle} state.
+Figure~\ref{fig:advice} shows the construction of advice using the \texttt{AfterState} class. Any arbitrary Scala code can be executed inside the advice body as long as it returns advice. \texttt{StateJoinpoint} provides reflexive access to the join-point as well as its context. In this advice, in the \texttt{match} statement, we test to see a transition already exists coming out of the state using the join-point context. If we do not do this, the advice would apply again. The result of this advice would be to insert a new \texttt{ack} edge between every \texttt{WriteWaitState} and the \texttt{Idle} state. This transition represents the completion of the write transaction. Once the the cache receives acknowledgement from the backing store, it returns to the idle state to wait for another transaction.
 
 \begin{figure*}[ht]
     \centering
@@ -254,12 +254,12 @@ fsmHandle("readFinish") := !io.req.valid && hit
 \end{figure*}
 
 \section{Feature-Oriented Cache}\label{sec:foc}
-Overcoming the hurtle of evolving the control structures allows us to then feature-orient the cache as a whole. The feature-oriented cache presented here prototypes our hardware generation technique that we believe increases modularity, design reuse, and shareability.
+We next use our AOP FSM library to create a feature-oriented cache design.  We present the base machine in terms of the hooks it exposes for features, and then we define features using those hooks.  While the result is presented in its final form here, the process is one of refactoring and evolution as new features are included.
 
 \subsection{Feature Decomposition}
 The stateful nature of the cache requires feature decomposition across both the internal hardware and the FSM that controls it. However, the instruction and data cache designs are not mutually exclusive. They both share the same base design for both the FSM and the cache overall. All endpoints for either cache are the result of applying features to the same base designs. All our designs are built for the \Riscvmini{} processor~\cite{RvMini}.
 
-We strategically chose this processor, despite its small size. A goal of feature-oriented programming is to begin with a small design and then \emph{additively} build upon it. So, we chose \Riscvmini{} rather than a complicated chip generator like \Rocketchip{}~\cite{chisel:riscv} to save us the time of tearing down the fully-featured implementations already present in these generators.
+We strategically chose this processor, despite its small size. A goal of feature-oriented programming is to begin with a small design and then \emph{additively} build upon it. So, we chose \Riscvmini{} rather than a complicated chip generator like \Rocketchip{}~\cite{chisel:riscv} to save us the time of deconstructing the fully-featured implementations already present in \Rocketchip{}.
 
 \subsubsection{Finite-State Machine}
 We have divided the FSM's mechanisms into five separate features.
@@ -297,7 +297,7 @@ The evolution of our FSM is shown in Figures~\ref{fig:readFSM}, \ref{fig:writeTh
 \subsubsection{Hardware Generator}\label{sec:hwFeatures}
 Below are the 9 separate hardware generation features for our cache. In all cases, the cache implements the AXI~\cite{AXI} interface for communication with the backing store and follows the request-response interface already present in the \Riscvmini{} datapath.
 
-To show the extensibility of our feature-oriented approach we have also included the esoteric \textbf{Dusty}~\cite{Krishna:06, Friedman:05} feature. Instead of writing any dirty line back to memory, a dusty cache will a secondary ``image'' of main memory to see if the line has actually changed since it was first brought into cache. This is useful with circular counters as they frequently return to the same value.
+To show the extensibility of our feature-oriented approach we have also included an esoteric \textbf{Dusty}~\cite{Krishna:06, Friedman:05} feature, an idea proposed to reduce unnecessary write-backs, particularly for reference counts.   When the cache is about to writing a dirty line back to memory, a dusty cache will first consult a secondary ``image'' of the line to see if the line has \emph{actually} changed since it was first brought into cache. This is useful for fetched values that change temporarily but return soon to their originally fetched value.
 
 \begin{itemize}
     \item \textbf{Base System} provides the structure to which all other features can be applied.
@@ -315,7 +315,7 @@ To show the extensibility of our feature-oriented approach we have also included
 \subsubsection{Endpoints}
 As stated earlier, our features combine to form endpoints for both an instruction and data cache. Endpoints for both the instruction and data caches can exist in the same system at the same time (how this is achieved is discussed in Section~\ref{sec:implementation}). This means that our cache system can realize 10 separate overall endpoints, two choices for instruction cache and five choices for the data cache. Figure~\ref{fig:Endpoints} lists all of the endpoints for the instruction and data caches, as well as the features combined to achieve each of them. 
 
-The \textbf{Read-Channel} and \textbf{Write-Channel} endpoints implement the hardware necessary for memory transactions as well as a small buffer for use with the AXI interface. In all other cases our generator creates a direct mapped cache with 256 sets and 16 byte cache lines. Set-associative and fully-associative caches are not precluded by our approach, they are just beyond the scope of the experiments in this paper.
+The \textbf{Read-Channel} and \textbf{Write-Channel} endpoints implement the hardware necessary for memory transactions as well as a small buffer for use with the AXI interface. In all other cases our generator creates a direct mapped cache with 256 sets and 16 byte cache lines. Set-associative and fully-associative caches are embraced well by our approach, but they are beyond the scope of the experiments in this paper.
 
 \begin{figure*}[ht]
     \centering
@@ -363,14 +363,14 @@ Dusty &0 &0 &14 &14 \\
     \label{fig:LOC}
 \end{figure}
 
-\subsubsection{Hardware generation through types}\label{sec:types}
+\subsubsection{Hardware Generation Through Types}\label{sec:types}
 Rather than tying the structure of the hardware generator code to the hardware hierarchy, we propose separating hardware into types with specific generation tasks. To illustrate this, the base \texttt{Cache} class is listed in Figure~\ref{lst:BaseSystem}. Here, the \texttt{Cache} class is responsible for creating and initializing the hardware needed for the optional cache features. 
 
-Furthermore, on lines 25 and 26 we have the \texttt{Frontend} class and \texttt{Backend} class. These two classes are responsible for generating the hardware needed for communication with the datapath and the backing store, respectfully. Separating these concerns and encapsulating them into their own classes, they have become decoupled from the rest of the hardware. In the future, if the design moved away from AIX to a different protocol, \texttt{Backend} could be swapped out for a different class that has the same interface, with appropriate changes to the FSM and IO for the module.
+Furthermore, on lines 25 and 26 we have the \texttt{Frontend} class and \texttt{Backend} class. These two classes are responsible for generating the hardware needed for communication with the datapath and the backing store, respectively. Separating these concerns and encapsulating them into their own classes, they have become decoupled from the rest of the hardware. In the future, if the design moved away from AIX to a different protocol, \texttt{Backend} could be swapped out for a different class that has the same interface, with appropriate changes to the FSM and IO for the module.
 
 Hardware generation types give us a way to \emph{optionally} generate hardware through class methods. On line 33 the \texttt{read()} method is called because every cache design must read from memory. However, some endpoints require the ability to write to memory. So, the \textbf{HasSimpleRead} feature calls the \texttt{write()} method of the \texttt{Frontend} while the \textbf{HasWriteStub} feature calls \texttt{writeStub()}. Instead of having to write one implementation for read-only and one implementation for read-write, we can call one method or another while sharing the rest of the design. In addition, the hardware design may easily be extended by adding new hardware generation methods or overriding old ones.
 
-Critically, hardware as types creates ``hooks'' for us to grab onto to modify the abstract syntax trees with Faust. Within our generator, the instruction cache and data cache are \emph{subtypes} of \texttt{Cache}. We direct Faust to modify the cache of a specific type with the desired features. This enables us to easily create endpoints modifying both caches without having to worry about cross contamination of features between the two.
+Critically, hardware as types creates ``hooks'' for us to grab onto, to modify the abstract syntax trees with Faust. Within our generator, the instruction cache and data cache are \emph{subtypes} of \texttt{Cache}. We direct Faust to modify the cache of a specific type with the desired features. This enables us to easily create endpoints modifying both caches without having to worry about cross contamination of features between the two.
 \begin{figure*}[ht]
     \centering
     \input{isca2023-latex-template/listings/BaseSystem}
@@ -381,16 +381,16 @@ Critically, hardware as types creates ``hooks'' for us to grab onto to modify th
 \subsubsection{Features as Traits}
 Traits in Scala function similarly to Java interfaces. Unlike Java, Scala traits support multiple inheritance and Scala code can be called from within a trait. Packaging functionality into traits is not a new idea. \Riscvmini{}, \Rocketchip{}, and BOOM all have traits that implement some functionality. However, our approach differs significantly in that we package \emph{whole features} into traits. Thus, to add a feature to a design, the type can just be extended with the trait containing the feature.
 
-Take the \textbf{HasMiddleAllocate} feature in Figure~\ref{fig:HasMiddleAllocate}. By extending the \texttt{InstructionCache} with \textbf{HasMiddleUpdate} instead of \textbf{HasBufferBookeeping} the read-channel is transformed into a read-only cache. By combining this with our type encapsulation technique (Section~\ref{sec:types}), zero hand rewriting of the design is required to make this extensive change.
+Consider the \textbf{HasMiddleAllocate} feature in Figure~\ref{fig:HasMiddleAllocate}. By extending the \texttt{InstructionCache} with \textbf{HasMiddleUpdate} instead of \textbf{HasBufferBookeeping} the read-channel is transformed into a read-only cache. By combining this with our type encapsulation technique (Section~\ref{sec:types}), zero hand rewriting of the design is required to make this extensive change.
 
 Since Faust modifies the abstract syntax tree of the hardware generator, creating different endpoints only requires instructing Faust to extend the cache classes with different traits. All of our endpoints except for \textbf{WriteBack} and \textbf{Dusty} are created this way.
 
-\subsubsection{Inserting hardware into traits}
+\subsubsection{Inserting Hardware into Traits}
 Sometimes, there are features that cannot be succinctly captured in a single trait, but instead crosscut the hardware generator. To implement a Write-Back cache, new features must be added to the FSM, hardware must be created for storing the dirty bit and transmitting that information, as well as crating or changing conditions for cache updates and memory transactions. 
 
 In this instance, we heavily utilize the aspectual nature of Faust. The majority of the implementation of the implementation of \textbf{Dirty Accounting} is written as an aspect in Faust (see Figure~\ref{fig:LOC}). However, \textbf{Dirty Accounting} requires more than just the extension of traits with new traits. We use Faust's ability to weave new code into the hardware generator to modify and extend the designs contained in traits. \textbf{HasMiddleUpdate} is modified to hold the dirty bits, as well as connect with the new mechanisms in the FSM for write-back. \textbf{HasWriteFSM} receives new features to account for dirty cache lines and writing back to memory. \textbf{HasSimpleWrite} is updated with new conditions for writing to memory. Conveniently, this can all be contained in one selectable aspect within Faust.
 
-This is further exemplified by the \textbf{Dusty} feature. The whole implementation of \textbf{Dusty} is captured in a single aspect within Faust. Figure~\ref{fig:Dusty} shows all we have to do to implement \textbf{Dusty}. First, once again utilizing the type isolation technique (Section~\ref{sec:types}) all we have to do to create our image of memory is instantiate another \texttt{Middleend} class. Then, we provide advice \emph{around} the dirty signal to now only consider a cache line to be dirty if it does not equal what exists in the image of memory.
+This is further exemplified by the \textbf{Dusty} feature. The whole implementation of \textbf{Dusty} is captured in a single aspect within Faust. Figure~\ref{fig:Dusty} shows the relatively small amount of work needed to implement \textbf{Dusty}. First, once again utilizing the type isolation technique (Section~\ref{sec:types}), we create our reference image of memory by instantiating another \texttt{Middleend} class. Then, we provide advice \emph{around} the dirty signal to judge a cache line dirty only if it does not equal what exists in the reference image of memory.
 
 \begin{figure*}[ht]
     \centering
@@ -441,12 +441,12 @@ Average CPI &3.47 &3.21 &3.10 &2.85 &2.83 &2.27 &2.01 &1.90 &1.68 &1.65 \\
     \label{fig:CPI}
 \end{figure*}
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
     \centering
-    \includegraphics[width=0.5\textwidth]{isca2023-latex-template/figures/Area in LUTs of endpoints.pdf}
+    \includegraphics[width=0.8\textwidth]{isca2023-latex-template/figures/Area in LUTs of endpoints.pdf}
     \caption{The area in LUTs of the endpoints.}
     \label{fig:area}
-\end{figure}
+\end{figure*}
 
 We have taken our feature-oriented designs all the way up through simulation and synthesis. The hardware generator is implemented in Chisel 3.5.1. All designs were emitted as Verilog. Beyond the cache, the rest of the \Riscvmini{} was kept original, implementing the RV32I ISA of the User-level Version 2.0~\cite{riscv:user} and the Machine-level ISA of the Privileged Architecture Version 1.7~\cite{riscv:priv}. We simulated the large benchmarks from the RISC-V tests repository~\cite{RvTest} using Verilator 4.214~\cite{verilator}. Designs were synthesized for an xc7a100tcsg324-1 FPGA using Vivado 2022.1 with the Vivado synthesis defaults. Figure~\ref{fig:CPI} shows the cycles per instruction for each benchmark with the average CPI of all the benchmarks displayed at the bottom. Figure~\ref{fig:area} shows the synthesized area of the whole synthesized chip design in LUTs. 
 
@@ -471,7 +471,7 @@ Our focus in this paper is on making cache designs feature-oriented for \Riscv{}
 
 
 %%%%%%%%% -- BIB STYLE AND FILE -- %%%%%%%%
-\bibliographystyle{IEEEtranS}
+\clearpage\bibliographystyle{IEEEtranS}
 \bibliography{refs, networks, bibdbase}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
