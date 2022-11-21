@@ -26,7 +26,7 @@
 \pagenumbering{arabic}
 
 %%%%%%%%%%%---SETME-----%%%%%%%%%%%%%
-\title{Feature-Oriented Caches Designs}
+\title{Feature-Oriented Cache Designs}
 \author{\normalsize{ISCA 2023 Submission
     \textbf{\#\iscasubmissionnumber} -- Confidential Draft -- Do NOT Distribute!!}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -178,7 +178,7 @@ State pointcuts are analogous to a set of function bodies in a program. Just as 
 \subsubsection{Advice}
 Continuing the analogy, an FSM is essentially a set of function bodies (states) where function calls (transitions) occur at the end of each body. For our purposes, advice is inserted into the execution flow of an FSM to implement a given feature. The advice affects the actions performed before, during, or after a state, including modification of transitions to target new or other states.
 
-We consider the usual forms of \emph{around}, \emph{before}, and \emph{after} advice (\emph{cf}. AspectJ~\cite{AspectJ:01}). Around advice takes the joinpoint and replaces it with something else. States replace states and transitions replace transitions. Before and after advice come in the form of token-state or state-token pairs in order to add a new path through the FSM. Figure~\ref{fig:adviceExamples} shows the effect of different types of advice on a simple FSM. Before advice (q3, e) on q1 takes all paths into q1 and directs them into q3, on e the machine transitions to q1. The reverse is true for after advice (e, q3) on q1. All paths leaving q1 now leave q3 and the transition from q1 to q3 takes place on e. Similarly, before advice (e, q3) on a places e going into q3 and a out of q3. The reverse is true for after advice (q3, e) on a.  In each of these cases, e can be the empty string $\lambda$ if the behavior of the FSM should change but not require additional input to do so.
+We consider the usual forms of \emph{around}, \emph{before}, and \emph{after} advice (\emph{cf}. AspectJ~\cite{AspectJ:01}). Around advice takes the join-point and replaces it with something else. States replace states and transitions replace transitions. Before and after advice come in the form of token-state or state-token pairs in order to add a new path through the FSM. Figure~\ref{fig:adviceExamples} shows the effect of different types of advice on a simple FSM. Before advice (q3, e) on q1 takes all paths into q1 and directs them into q3, on e the machine transitions to q1. The reverse is true for after advice (e, q3) on q1. All paths leaving q1 now leave q3 and the transition from q1 to q3 takes place on e. Similarly, before advice (e, q3) on a places e going into q3 and a out of q3. The reverse is true for after advice (q3, e) on a.  In each of these cases, e can be the empty string $\lambda$ if the behavior of the FSM should change but not require additional input to do so.
 
 \begin{figure}[ht]
     \centering
